@@ -135,7 +135,7 @@ def get_augmented_data(
     return images, labels
 
 
-def plot_images_with_labels(dataset, num_images=10):
+def plot_images_with_labels(dataset, num_images=16):
     """
     Plots a grid of images along with their corresponding labels.
 

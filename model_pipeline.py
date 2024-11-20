@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
-from data_preprocessing import build_image_preprocessor
+from data_utils import build_image_preprocessor
 
 
 def build_image_model_pipeline(preprocessor: Pipeline, model) -> Pipeline:

@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
 
-from data_preprocessing import build_image_preprocessor, get_augmented_data
+from data_utils import build_image_preprocessor, get_augmented_data
 from model_pipeline import build_image_model_pipeline
 
 
@@ -96,7 +96,7 @@ def evaluate_on_test_set(
     return test_accuracy
 
 
-def train_test(
+def get_best_pipeline(
     dataset: tuple[np.ndarray, np.ndarray],
     model,
     param_grid: dict,
@@ -197,7 +197,9 @@ if __name__ == "__main__":
         "model__solver": ["liblinear", "lbfgs"],  # Solvers for Logistic Regression
     }
 
-    best_pipeline, best_params, test_accuracy = train_test(dataset, model, param_grid)
+    best_pipeline, best_params, test_accuracy = get_best_pipeline(
+        dataset, model, param_grid
+    )
 
     # Output test set accuracy
     print(f"Test set accuracy: {test_accuracy:.4f}")

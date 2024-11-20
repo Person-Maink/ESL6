@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.linear_model import SGDClassifier
 
-from data_preprocessing import get_augmented_data
-from train_test import train_test
+from data_utils import get_augmented_data
+from grid_search import get_best_pipeline
 
 if __name__ == "__main__":
     model = SGDClassifier(
@@ -28,7 +28,9 @@ if __name__ == "__main__":
         "model__alpha": [0.01, 1, 10, 100],  # Constant of regularization term
     }
 
-    best_pipeline, best_params, test_accuracy = train_test(dataset, model, param_grid)
+    best_pipeline, best_params, test_accuracy = get_best_pipeline(
+        dataset, model, param_grid
+    )
 
     # Output test set accuracy
     print(f"Test set accuracy: {test_accuracy:.4f}")
