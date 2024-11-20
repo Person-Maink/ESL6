@@ -103,6 +103,7 @@ def train_test(
     test_size: float = 0.2,
     n_splits: int = 5,
     random_state: int = 42,
+    data_aug: bool = False,
     gen_num: int = 5,
     randome_noise: bool = True,
     rotation: float = 10,
@@ -125,6 +126,7 @@ def train_test(
         n_splits (int, optional): Number of folds for Stratified K-Fold cross-validation. Default is 5.
         random_state (int, optional): Random state for reproducibility in data splitting and cross-validation.
             Default is 42.
+        data_aug (bool, optional): Whether to perform data augmentation. Default is False.
         gen_num (int, optional): Number of augmented samples to generate per original sample. Default is 5.
         randome_noise (bool, optional): Whether to add random noise to the augmented images. Default is True.
         rotation (float, optional): Maximum rotation angle for image augmentation. Default is 10 degrees.
@@ -146,14 +148,15 @@ def train_test(
     )
 
     # Step 3: Augment the train_val set
-    X_train_val, y_train_val = get_augmented_data(
-        (X_train_val, y_train_val),
-        gen_num,
-        randome_noise,
-        rotation,
-        contrast,
-        gaussian_sigma,
-    )
+    if data_aug:
+        X_train_val, y_train_val = get_augmented_data(
+            (X_train_val, y_train_val),
+            gen_num,
+            randome_noise,
+            rotation,
+            contrast,
+            gaussian_sigma,
+        )
 
     # Step 4: Perform grid search cross-validation
     grid_search = perform_grid_search_cross_validation(

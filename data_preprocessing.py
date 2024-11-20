@@ -8,34 +8,19 @@ from sklearn.preprocessing import FunctionTransformer
 
 
 def build_image_preprocessor(
-    rescale: tuple[int, int] = (28, 28),
     flatten: bool = True,
 ) -> Pipeline:
     """
     Builds an image preprocessing pipeline that includes:
-    - Rescaling images to the given size.
     - Normalizing pixel values to the range [0, 1].
     - Optionally flattening the images for use with dense models.
 
     Args:
-        rescale (tuple): A tuple specifying the desired target size for image rescaling (default is (28, 28)).
         flatten (bool): Whether to include a step for flattening images into a 1D array (default is True).
 
     Returns:
         Pipeline: A scikit-learn Pipeline object for preprocessing the image data.
     """
-
-    def resize_images(images):
-        """
-        Rescale images to the desired size.
-
-        Args:
-            images (np.ndarray): Array of images to resize.
-
-        Returns:
-            np.ndarray: Array of resized images.
-        """
-        return np.array([resize(img, rescale, anti_aliasing=True) for img in images])
 
     def normalize_images(images):
         """
@@ -62,13 +47,11 @@ def build_image_preprocessor(
         return images.reshape(images.shape[0], -1)
 
     # Create transformers for resizing, normalization, and flattening
-    resize_transformer = FunctionTransformer(resize_images, validate=False)
     normalize_transformer = FunctionTransformer(normalize_images, validate=False)
     flatten_transformer = FunctionTransformer(flatten_images, validate=False)
 
     # Build the pipeline steps conditionally
     steps = [
-        ("resize", resize_transformer),  # Rescale to the specified size
         ("normalize", normalize_transformer),  # Normalize pixel values
     ]
     if flatten:
@@ -86,7 +69,7 @@ def get_augmented_data(
     randome_noise: bool = True,
     rotation: float = 10,
     contrast: tuple[float, float] = (0.5, 99.5),
-    gaussian_sigma: tuple[float, float] = (1.0, 1.0),
+    gaussian_sigma: tuple[float, float] = (0.75, 0.75),
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Augments the image dataset by applying various transformations such as:
@@ -125,13 +108,12 @@ def get_augmented_data(
         if randome_noise:
             image = random_noise(image)
 
-        # Apply random rotation
-        angle = np.random.normal() * rotation
-        image = rotate(image, angle=angle)
+        # Apply random rotation with bounds
+        angle = np.clip(np.random.normal() * rotation, -30, 30)
+        image = rotate(image, angle=angle, mode="wrap")
 
-        # Apply Gaussian blurring
-        sigma = np.random.normal(scale=gaussian_sigma)
-        sigma = np.abs(sigma)
+        # Apply Gaussian blurring with bounds
+        sigma = np.clip(np.abs(np.random.normal(scale=gaussian_sigma)), 0, 2.0)
         image = gaussian(image, sigma=sigma)
 
         return image
