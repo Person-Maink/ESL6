@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import Pipeline
 
-from data_preprocessing import build_image_preprocessor
+from data_preprocessing import build_image_preprocessor, get_augmented_data
 from model_pipeline import build_image_model_pipeline
 
 
@@ -96,46 +96,105 @@ def evaluate_on_test_set(
     return test_accuracy
 
 
-if __name__ == "__main__":
-    # Step 1: Build the preprocessor and model
+def train_test(
+    dataset: tuple[np.ndarray, np.ndarray],
+    model,
+    param_grid: dict,
+    test_size: float = 0.2,
+    n_splits: int = 5,
+    random_state: int = 42,
+    gen_num: int = 5,
+    randome_noise: bool = True,
+    rotation: float = 10,
+    contrast: tuple[float, float] = (0.5, 99.5),
+    gaussian_sigma: tuple[float, float] = (1.0, 1.0),
+):
+    """
+    Performs train-validation-test splitting, grid search cross-validation for hyperparameter tuning,
+    and final model evaluation on the test set.
+
+    Args:
+        dataset (tuple): A tuple containing:
+            - X (np.ndarray): Input data (e.g., images), expected to be a numpy array of shape
+              (n_samples, height, width) or (n_samples, n_features).
+            - y (np.ndarray): Labels corresponding to the input data, expected to be a numpy array
+              of shape (n_samples,).
+        model (object): A scikit-learn compatible machine learning model (e.g., LogisticRegression, SGDClassifier).
+        param_grid (dict): Dictionary specifying the hyperparameters to tune during grid search cross-validation.
+        test_size (float, optional): Proportion of the dataset reserved for the test set. Default is 0.2.
+        n_splits (int, optional): Number of folds for Stratified K-Fold cross-validation. Default is 5.
+        random_state (int, optional): Random state for reproducibility in data splitting and cross-validation.
+            Default is 42.
+        gen_num (int, optional): Number of augmented samples to generate per original sample. Default is 5.
+        randome_noise (bool, optional): Whether to add random noise to the augmented images. Default is True.
+        rotation (float, optional): Maximum rotation angle for image augmentation. Default is 10 degrees.
+        contrast (tuple[float, float], optional): Percentile range for contrast adjustment. Default is (0.5, 99.5).
+        gaussian_sigma (tuple[float, float], optional): Range of Gaussian blur sigma values. Default is (1.0, 1.0).
+
+    Returns:
+        tuple: A tuple containing:
+            - best_pipeline (Pipeline): The best pipeline found during grid search.
+            - best_params (dict): The best hyperparameters from grid search.
+            - test_accuracy (float): Accuracy score of the best pipeline on the test set.
+    """
+    # Step 1: Build the preprocessor
     image_preprocessor = build_image_preprocessor()
-    model = LogisticRegression(max_iter=1000)  # Logistic Regression baseline model
 
-    # Step 2: Load labeled images and labels
-    labeled_images = np.load("labeled_images.npy")
-    labeled_digits = np.load("labeled_digits.npy")
-
-    # Validate dataset dimensions
-    assert len(labeled_images) == len(
-        labeled_digits
-    ), "Mismatch between images and labels."
-
-    # Step 3: Split dataset into train-validation and test sets
+    # Step 2: Split dataset into train-validation and test sets
     (X_train_val, y_train_val), (X_test, y_test) = train_validate_test_split(
-        (labeled_images, labeled_digits), test_size=0.2
+        dataset, test_size=test_size
     )
 
-    # Step 4: Define parameter grid for GridSearchCV
-    param_grid = {
-        "model__C": [0.1, 1, 10],  # Logistic Regression regularization strength
-        "model__solver": ["liblinear", "lbfgs"],  # Solvers for Logistic Regression
-    }
+    # Step 3: Augment the train_val set
+    X_train_val, y_train_val = get_augmented_data(
+        (X_train_val, y_train_val),
+        gen_num,
+        randome_noise,
+        rotation,
+        contrast,
+        gaussian_sigma,
+    )
 
-    # Step 5: Perform grid search cross-validation
+    # Step 4: Perform grid search cross-validation
     grid_search = perform_grid_search_cross_validation(
         (X_train_val, y_train_val),
         image_preprocessor,
         model,
         param_grid,
+        n_splits,
+        random_state,
     )
+
+    # Step 5: Evaluate the best pipeline on the test set
+    best_pipeline = grid_search.best_estimator_
+    test_accuracy = evaluate_on_test_set((X_test, y_test), best_pipeline)
 
     # Output best parameters and cross-validation score
     print("\nBest parameters found:", grid_search.best_params_)
     print("Best cross-validation accuracy:", grid_search.best_score_)
 
-    # Step 6: Evaluate the best pipeline on the test set
-    best_pipeline = grid_search.best_estimator_
-    test_accuracy = evaluate_on_test_set((X_test, y_test), best_pipeline)
+    return best_pipeline, grid_search.best_params_, test_accuracy
+
+
+if __name__ == "__main__":
+    # Example usage
+    model = LogisticRegression(max_iter=1000)  # Logistic Regression baseline model
+
+    labeled_images = np.load("labeled_images.npy")
+    labeled_digits = np.load("labeled_digits.npy")
+
+    dataset = (labeled_images, labeled_digits)
+
+    assert len(labeled_images) == len(
+        labeled_digits
+    ), "Mismatch between images and labels."
+
+    param_grid = {
+        "model__C": [0.1, 1, 10],  # Logistic Regression regularization strength
+        "model__solver": ["liblinear", "lbfgs"],  # Solvers for Logistic Regression
+    }
+
+    best_pipeline, best_params, test_accuracy = train_test(dataset, model, param_grid)
 
     # Output test set accuracy
     print(f"Test set accuracy: {test_accuracy:.4f}")

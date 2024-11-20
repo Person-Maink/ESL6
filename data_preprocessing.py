@@ -85,7 +85,7 @@ def get_augmented_data(
     gen_num: int = 5,
     randome_noise: bool = True,
     rotation: float = 10,
-    contrast: tuple[float, float] = (0.2, 99.8),
+    contrast: tuple[float, float] = (0.5, 99.5),
     gaussian_sigma: tuple[float, float] = (1.0, 1.0),
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -130,7 +130,9 @@ def get_augmented_data(
         image = rotate(image, angle=angle)
 
         # Apply Gaussian blurring
-        image = gaussian(image, sigma=gaussian_sigma)
+        sigma = np.random.normal(scale=gaussian_sigma)
+        sigma = np.abs(sigma)
+        image = gaussian(image, sigma=sigma)
 
         return image
 
@@ -149,6 +151,49 @@ def get_augmented_data(
     labels = np.array(labels.tolist() + augmented_labels)
 
     return images, labels
+
+
+def plot_images_with_labels(dataset, num_images=10):
+    """
+    Plots a grid of images along with their corresponding labels.
+
+    Args:
+        dataset (tuple): A tuple containing:
+            - images (np.ndarray): The input images, expected to be a numpy array of shape
+              (n_samples, height, width) or (n_samples, n_features).
+            - labels (np.ndarray): The corresponding labels for the images, expected to be
+              a 1D numpy array of shape (n_samples,).
+        num_images (int, optional): Number of images to plot. Default is 10.
+
+    Returns:
+        None: Displays the images and their labels in a matplotlib grid plot.
+    """
+    import matplotlib.pyplot as plt
+
+    # Ensure num_images doesn't exceed the dataset size
+    images, labels = dataset
+    num_images = min(num_images, len(images))
+
+    # Determine the grid size
+    cols = int(np.ceil(np.sqrt(num_images)))
+    rows = int(np.ceil(num_images / cols))
+
+    # Create the plot
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2))
+    axes = axes.flatten()
+
+    for i in range(num_images):
+        ax = axes[i]
+        ax.imshow(images[i], cmap="gray")  # Display as grayscale
+        ax.set_title(f"Label: {labels[i]}")
+        ax.axis("off")  # Remove axis for cleaner look
+
+    # Turn off unused axes
+    for ax in axes[num_images:]:
+        ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
