@@ -135,7 +135,7 @@ def get_augmented_data(
     return images, labels
 
 
-def plot_images_with_labels(dataset, num_images=16):
+def plot_images_with_labels(dataset, num_images=16, shuffle=True):
     """
     Plots a grid of images along with their corresponding labels.
 
@@ -145,16 +145,26 @@ def plot_images_with_labels(dataset, num_images=16):
               (n_samples, height, width) or (n_samples, n_features).
             - labels (np.ndarray): The corresponding labels for the images, expected to be
               a 1D numpy array of shape (n_samples,).
-        num_images (int, optional): Number of images to plot. Default is 10.
+        num_images (int, optional): Number of images to plot. Default is 16.
+        shuffle (bool, optional): Whether to shuffle the dataset before plotting. Default is True.
 
     Returns:
         None: Displays the images and their labels in a matplotlib grid plot.
     """
     import matplotlib.pyplot as plt
+    import numpy as np
+
+    # Extract images and labels
+    images, labels = dataset
 
     # Ensure num_images doesn't exceed the dataset size
-    images, labels = dataset
     num_images = min(num_images, len(images))
+
+    # Shuffle the dataset if required
+    if shuffle:
+        indices = np.random.permutation(len(images))
+        images = images[indices]
+        labels = labels[indices]
 
     # Determine the grid size
     cols = int(np.ceil(np.sqrt(num_images)))
@@ -176,20 +186,3 @@ def plot_images_with_labels(dataset, num_images=16):
 
     plt.tight_layout()
     plt.show()
-
-
-if __name__ == "__main__":
-    # Load image dataset and augment data
-    labeled_images = np.load("labeled_images.npy")
-    labeled_digits = np.load("labeled_digits.npy")
-
-    print(f"Original dataset shapes: {labeled_images.shape}, {labeled_digits.shape}")
-
-    # Generate augmented dataset
-    augmented_images, augmented_labels = get_augmented_data(
-        (labeled_images, labeled_digits)
-    )
-
-    print(
-        f"Augmented dataset shapes: {augmented_images.shape}, {augmented_labels.shape}"
-    )
